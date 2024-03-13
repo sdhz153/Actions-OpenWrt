@@ -1,17 +1,17 @@
-From 2b681c3afada510ed64d659dce020845fd93d2ef Mon Sep 17 00:00:00 2001
+From 50edba98a1eced2033979db1fbbd9c36a880a0f0 Mon Sep 17 00:00:00 2001
 From: sdhz151 <yanghui140@gmail.com>
-Date: Thu, 29 Feb 2024 06:29:08 +0800
+Date: Thu, 14 Mar 2024 05:27:24 +0800
 Subject: [PATCH] Update Makefile
 
 ---
- package/passwall/p/luci-app-passwall/Makefile | 23 ++++-------------------
- 1 file changed, 4 insertions(+), 19 deletions(-)
+ package/passwall/p/luci-app-passwall/Makefile | 20 +++-----------------
+ 1 file changed, 3 insertions(+), 17 deletions(-)
 
 diff --git a/package/passwall/p/luci-app-passwall/Makefile b/package/passwall/p/luci-app-passwall/Makefile
-index ef7e3bbca1..dda7dd457c 100644
+index f70d1b5b67..3815c492a2 100644
 --- a/package/passwall/p/luci-app-passwall/Makefile
 +++ b/package/passwall/p/luci-app-passwall/Makefile
-@@ -10,7 +10,6 @@ PKG_VERSION:=4.75-3
+@@ -10,7 +10,6 @@ PKG_VERSION:=4.75-9
  PKG_RELEASE:=
  
  PKG_CONFIG_DEPENDS:= \
@@ -19,13 +19,12 @@ index ef7e3bbca1..dda7dd457c 100644
  	CONFIG_PACKAGE_$(PKG_NAME)_Nftables_Transparent_Proxy \
  	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_Haproxy \
  	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_Hysteria \
-@@ -40,20 +39,6 @@ define Package/$(PKG_NAME)/config
+@@ -41,19 +40,6 @@ define Package/$(PKG_NAME)/config
  menu "Configuration"
  	depends on PACKAGE_$(PKG_NAME)
  
 -config PACKAGE_$(PKG_NAME)_Iptables_Transparent_Proxy
 -	bool "Iptables Transparent Proxy"
--	select PACKAGE_dnsmasq-full
 -	select PACKAGE_ipset
 -	select PACKAGE_ipt2socks
 -	select PACKAGE_iptables
@@ -39,17 +38,8 @@ index ef7e3bbca1..dda7dd457c 100644
 -
  config PACKAGE_$(PKG_NAME)_Nftables_Transparent_Proxy
  	bool "Nftables Transparent Proxy"
- 	select PACKAGE_dnsmasq-full
-@@ -62,7 +47,7 @@ config PACKAGE_$(PKG_NAME)_Nftables_Transparent_Proxy
- 	select PACKAGE_kmod-nft-socket
- 	select PACKAGE_kmod-nft-tproxy
- 	select PACKAGE_kmod-nft-nat
--	default y if PACKAGE_firewall4
-+	default y if PACKAGE_firewall
- 
- config PACKAGE_$(PKG_NAME)_INCLUDE_Haproxy
- 	bool "Include Haproxy"
-@@ -72,13 +57,13 @@ config PACKAGE_$(PKG_NAME)_INCLUDE_Haproxy
+ 	select PACKAGE_ipt2socks
+@@ -71,13 +57,13 @@ config PACKAGE_$(PKG_NAME)_INCLUDE_Haproxy
  config PACKAGE_$(PKG_NAME)_INCLUDE_Hysteria
  	bool "Include Hysteria"
  	select PACKAGE_hysteria
@@ -65,7 +55,7 @@ index ef7e3bbca1..dda7dd457c 100644
  
  config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Libev_Client
  	bool "Include Shadowsocks Libev Client"
-@@ -139,7 +124,7 @@ config PACKAGE_$(PKG_NAME)_INCLUDE_V2ray_Geodata
+@@ -138,7 +124,7 @@ config PACKAGE_$(PKG_NAME)_INCLUDE_V2ray_Geodata
  	bool "Include V2ray_Geodata"
  	select PACKAGE_v2ray-geoip
  	select PACKAGE_v2ray-geosite
