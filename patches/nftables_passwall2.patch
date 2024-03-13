@@ -1,0 +1,65 @@
+From 887b42870fc885163ed7ed80b01dd0c5dac87ae1 Mon Sep 17 00:00:00 2001
+From: sdhz151 <yanghui140@gmail.com>
+Date: Wed, 20 Dec 2023 14:49:29 +0800
+Subject: [PATCH] Update Makefile
+
+---
+ feeds/luci/applications/luci-app-passwall2/Makefile | 25 ++++---------------------
+ 1 file changed, 4 insertions(+), 21 deletions(-)
+
+diff --git a/feeds/luci/applications/luci-app-passwall2/Makefile b/feeds/luci/applications/luci-app-passwall2/Makefile
+index 79b60735..0068fde2 100644
+--- a/feeds/luci/applications/luci-app-passwall2/Makefile
++++ b/feeds/luci/applications/luci-app-passwall2/Makefile
+@@ -9,7 +9,6 @@ PKG_VERSION:=1.21-4
+ PKG_RELEASE:=
+ 
+ PKG_CONFIG_DEPENDS:= \
+-	CONFIG_PACKAGE_$(PKG_NAME)_Iptables_Transparent_Proxy \
+ 	CONFIG_PACKAGE_$(PKG_NAME)_Nftables_Transparent_Proxy \
+ 	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_Brook \
+ 	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_Haproxy \
+@@ -53,22 +52,6 @@ LUCI_DEPENDS:=+coreutils +coreutils-base64 +coreutils-nohup +curl \
+ 
+ define Package/$(PKG_NAME)/config
+ menu "Configuration"
+-
+-config PACKAGE_$(PKG_NAME)_Iptables_Transparent_Proxy
+-	bool "Iptables Transparent Proxy"
+-	select PACKAGE_dnsmasq-full
+-	select PACKAGE_dnsmasq_full_ipset
+-	select PACKAGE_ipset
+-	select PACKAGE_iptables
+-	select PACKAGE_iptables-nft
+-	select PACKAGE_iptables-zz-legacy
+-	select PACKAGE_iptables-mod-conntrack-extra
+-	select PACKAGE_iptables-mod-iprange
+-	select PACKAGE_iptables-mod-socket
+-	select PACKAGE_iptables-mod-tproxy
+-	select PACKAGE_kmod-ipt-nat
+-	depends on PACKAGE_$(PKG_NAME)
+-	default y if ! PACKAGE_firewall4
+ 	
+ config PACKAGE_$(PKG_NAME)_Nftables_Transparent_Proxy
+ 	bool "Nftables Transparent Proxy"
+@@ -91,17 +74,17 @@ config PACKAGE_$(PKG_NAME)_INCLUDE_Haproxy
+ 
+ config PACKAGE_$(PKG_NAME)_INCLUDE_Hysteria
+ 	bool "Include Hysteria"
+-	default n
++	default y
+ 
+ config PACKAGE_$(PKG_NAME)_INCLUDE_IPv6_Nat
+ 	depends on PACKAGE_ip6tables
+ 	bool "Include IPv6 Nat"
+-	default n
++	default y
+ 
+ config PACKAGE_$(PKG_NAME)_INCLUDE_NaiveProxy
+ 	bool "Include NaiveProxy"
+ 	depends on !(arc||(arm&&TARGET_gemini)||armeb||mips||mips64||powerpc)
+-	default n
++	default y
+ 
+ config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Libev_Client
+ 	bool "Include Shadowsocks Libev Client"
