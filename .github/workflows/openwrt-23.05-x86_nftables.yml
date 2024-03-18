@@ -78,7 +78,6 @@ jobs:
       id: delete
       run: |
         cd openwrt
-        git apply $GITHUB_WORKSPACE/patches/dnsmasq2.90.patch
         git clone -b main https://github.com/xiaorouji/openwrt-passwall-packages.git package/passwall
         git clone -b main https://github.com/xiaorouji/openwrt-passwall.git package/passwall/p
  
