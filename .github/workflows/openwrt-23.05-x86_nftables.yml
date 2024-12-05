@@ -79,28 +79,11 @@ jobs:
       id: Addpasswall
       run: |
         cd openwrt
-        git clone -b main https://github.com/xiaorouji/openwrt-passwall-packages.git package/passwall
-        git clone -b main https://github.com/xiaorouji/openwrt-passwall2.git package/passwall2
-        git clone -b main https://github.com/xiaorouji/openwrt-passwall.git package/passwall1
+        git clone https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns
+        git clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
 
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
-
-    - name: Merge duplicates
-      run: |
-        cd openwrt
-        sudo rm -rf package/feeds/packages/microsocks
-        sudo rm -rf feeds/packages/net/microsocks
-        sudo rm -rf package/feeds/packages/sing-box
-        sudo rm -rf feeds/packages/net/sing-box
-        sudo rm -rf package/feeds/packages/trojan-go
-        sudo rm -rf feeds/packages/net/trojan-go
-        sudo rm -rf package/feeds/packages/v2ray-core
-        sudo rm -rf feeds/packages/net/v2ray-core
-        sudo rm -rf package/feeds/packages/v2ray-geodata
-        sudo rm -rf feeds/packages/net/v2ray-geodata
-        sudo rm -rf package/feeds/packages/xray-core
-        sudo rm -rf feeds/packages/net/xray-core
 
     - name: Add app vlmcsd
       id: appvlmcsd
@@ -126,42 +109,34 @@ jobs:
        echo "net/vlmcsd" >> .git/info/sparse-checkout
        git pull --depth 1 origin openwrt-23.05
 
-      # - name: Add homeproxy
-      # id: homeproxy
-      # run: |
-      # cd openwrt
-      # mkdir -p feeds/luci/applications/homeproxy
-      # cd feeds/luci/applications/homeproxy
-      # git init
-      # git remote add origin https://github.com/immortalwrt/luci.git
-      # git config core.sparsecheckout true
-      # echo "applications/luci-app-homeproxy" >> .git/info/sparse-checkout
-      # git pull --depth 1 origin master
-
-   # - name: r8152
-    #  id: r8152
-    #  run: |
-     #  cd openwrt
-     #  mkdir -p package/kernel/r8152
-     #  cd package/kernel/r8152
-     #  git init
-     #  git remote add origin https://github.com/immortalwrt/immortalwrt.git
-     #  git config core.sparsecheckout true
-     #  echo "package/kernel/r8152" >> .git/info/sparse-checkout
-     #  git pull --depth 1 origin master
-
-
-    - name: update golang
+    - name: Add homeproxy
+      id: homeproxy
       run: |
        cd openwrt
-       rm -rf feeds/packages/lang/golang/*
-       rm -rf package/feeds/packages/golang
-       cd feeds/packages/lang/golang
+       mkdir -p feeds/luci/applications/homeproxy
+       cd feeds/luci/applications/homeproxy
        git init
-       git remote add origin https://github.com/openwrt/packages.git
+       git remote add origin https://github.com/immortalwrt/luci.git
        git config core.sparsecheckout true
-       echo "lang/golang" >> .git/info/sparse-checkout
-       git pull --depth 1 origin openwrt-24.10
+       echo "applications/luci-app-homeproxy" >> .git/info/sparse-checkout
+       git pull --depth 1 origin master
+
+    - name: Add chinadns-ng
+      id: chinadns-ng
+      run: |
+       cd openwrt
+       mkdir -p package/chinadns/
+       cd package/chinadns/
+       git init
+       git remote add origin https://github.com/fw876/helloworld.git
+       git config core.sparsecheckout true
+       echo "chinadns-ng" >> .git/info/sparse-checkout
+       git pull --depth 1 origin master
+
+    - name: Merge duplicates
+      run: |
+        cd openwrt
+        sudo rm -rf feeds/packages/net/v2ray-geodata
 
     - name: Soft connection
       id: soft
@@ -175,30 +150,9 @@ jobs:
        mv package/vlmcsd/net/vlmcsd/* package/vlmcsd
        rm -rf package/vlmcsd/net
        rm -rf package/vlmcsd/.git
-       rsync -a feeds/packages/lang/golang/lang/golang/* feeds/packages/lang/golang
-       rm -rf feeds/packages/lang/golang/lang
-       rm -rf feeds/packages/lang/golang/.git
-       ln -sf ../../../feeds/packages/lang/golang package/feeds/packages/golang
-    #   rsync -a feeds/luci/applications/passwall2/luci-app-passwall2/* feeds/luci/applications/luci-app-passwall2
-    #   rm -rf feeds/luci/applications/passwall2
-    #   ln -sf ../../../feeds/luci/applications/luci-app-passwall2 package/feeds/luci/luci-app-passwall2
-    #     rsync -a feeds/packages/lang/golang/lang/golang/* feeds/packages/lang/golang
-    #     rm -rf feeds/packages/lang/golang/lang
-    #     rm -rf feeds/packages/lang/golang/.git
-    #     ln -sf ../../../feeds/packages/lang/golang package/feeds/packages/golang
-      # rsync -a feeds/luci/applications/homeproxy/applications/luci-app-homeproxy/* feeds/luci/applications/luci-app-homeproxy
-      # rm -rf feeds/luci/applications/homeproxy
-      # ln -sf ../../../feeds/luci/applications/luci-app-homeproxy package/feeds/luci/luci-app-homeproxy
-      # rsync -a package/kernel/r8152/package/kernel/r8152/* package/kernel/r8152
-      # rm -rf package/kernel/r8152/package
-      # rm -rf package/kernel/r8152/.git
-
-    - name: apply patches
-      run: |
-       cd openwrt 
-       git apply $GITHUB_WORKSPACE/patches/nftables_passwall2.patch
-       git apply $GITHUB_WORKSPACE/patches/nftables_passwall.patch
-      # git apply $GITHUB_WORKSPACE/patches/golang1.22.0.patch
+       rsync -a feeds/luci/applications/homeproxy/applications/luci-app-homeproxy/* feeds/luci/applications/luci-app-homeproxy
+       rm -rf feeds/luci/applications/homeproxy
+       ln -sf ../../../feeds/luci/applications/luci-app-homeproxy package/feeds/luci/luci-app-homeproxy
   
     - name: Load custom configuration
       run: |
@@ -316,7 +270,7 @@ jobs:
       with:
         token: ${{ secrets.REPO_TOKEN }}
         repository: ${{ github.repository }}
-     #   delete_workflow_pattern: X86_openwrt-24.10_nftables
+     #   delete_workflow_pattern: X86_openwrt-23.05_nftables
         retain_days: 0
         keep_minimum_runs: 1
 
