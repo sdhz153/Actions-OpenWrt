@@ -30,3 +30,5 @@ echo 'CONFIG_PACKAGE_v2ray-plugin=y' >>.config
 echo 'CONFIG_PACKAGE_xray-core=y' >>.config
 echo '# CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan_Plus is not set' >>.config
 echo '# CONFIG_PACKAGE_trojan-plus is not set' >>.config
+
+git apply $GITHUB_WORKSPACE/patches/nftables_passwall.patch
