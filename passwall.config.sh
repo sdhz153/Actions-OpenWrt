@@ -1,5 +1,9 @@
 #!/bin/bash
 #
+git clone -b main https://github.com/xiaorouji/openwrt-passwall-packages.git package/passwall
+git clone -b main https://github.com/sdhz150/openwrt-passwall2.git package/passwall2
+git clone -b main https://github.com/xiaorouji/openwrt-passwall.git package/passwall1
+
 echo 'CONFIG_PACKAGE_luci-app-passwall=y' >>.config
 echo 'CONFIG_PACKAGE_luci-app-passwall2=y' >>.config
 echo 'CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Haproxy=y' >>.config
