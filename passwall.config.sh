@@ -30,6 +30,21 @@ echo 'CONFIG_PACKAGE_v2ray-plugin=y' >>.config
 echo 'CONFIG_PACKAGE_xray-core=y' >>.config
 echo '# CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan_Plus is not set' >>.config
 echo '# CONFIG_PACKAGE_trojan-plus is not set' >>.config
-#
-git apply $GITHUB_WORKSPACE/patches/nftables_passwall.patch
-git apply $GITHUB_WORKSPACE/patches/nftables_passwall2.patch
+#passwall1
+sed -i '/CONFIG_PACKAGE_$(PKG_NAME)_Iptables_Transparent_Proxy/d' ./package/passwall1/luci-app-passwall/Makefile
+sed -i '/config PACKAGE_$(PKG_NAME)_Iptables_Transparent_Proxy/,+12d' ./package/passwall1/luci-app-passwall/Makefile
+sed -i '/CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Libev_Client/d' ./package/passwall1/luci-app-passwall/Makefile
+sed -i '/CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Libev_Server/d' ./package/passwall1/luci-app-passwall/Makefile
+sed -i '/CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Client/d' ./package/passwall1/luci-app-passwall/Makefile
+sed -i '/CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Server/d' ./package/passwall1/luci-app-passwall/Makefile
+sed -i '/config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Libev_Client/,+10d' ./package/passwall1/luci-app-passwall/Makefile
+sed -i '/config PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Client/,+10d' ./package/passwall1/luci-app-passwall/Makefile
+#passwall2
+sed -i '/CONFIG_PACKAGE_$(PKG_NAME)_Iptables_Transparent_Proxy/d' ./package/passwall2/luci-app-passwall2/Makefile
+sed -i '/config PACKAGE_$(PKG_NAME)_Iptables_Transparent_Proxy/,+15d' ./package/passwall2/luci-app-passwall2/Makefile
+sed -i '/CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Libev_Client/d' ./package/passwall2/luci-app-passwall2/Makefile
+sed -i '/CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Libev_Server/d' ./package/passwall2/luci-app-passwall2/Makefile
+sed -i '/CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Client/d' ./package/passwall2/luci-app-passwall2/Makefile
+sed -i '/CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Server/d' ./package/passwall2/luci-app-passwall2/Makefile
+sed -i '/config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Libev_Client/,+10d' ./package/passwall2/luci-app-passwall2/Makefile
+sed -i '/config PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Client/,+10d' ./package/passwall2/luci-app-passwall2/Makefile
