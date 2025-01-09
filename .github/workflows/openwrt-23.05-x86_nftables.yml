@@ -119,7 +119,7 @@ jobs:
        git remote add origin https://github.com/immortalwrt/luci.git
        git config core.sparsecheckout true
        echo "applications/luci-app-homeproxy" >> .git/info/sparse-checkout
-       git pull --depth 1 origin master
+       git pull --depth 1 origin openwrt-23.05
 
     - name: Add chinadns-ng
       id: chinadns-ng
