@@ -133,10 +133,24 @@ jobs:
        echo "chinadns-ng" >> .git/info/sparse-checkout
        git pull --depth 1 origin master
 
+    - name: Add sing-box
+      id: singbox
+      run: |
+       cd openwrt
+       mkdir -p package/singbox
+       cd package/singbox
+       git init
+       git remote add origin https://github.com/immortalwrt/packages.git
+       git config core.sparsecheckout true
+       echo "net/sing-box" >> .git/info/sparse-checkout
+       git pull --depth 1 origin openwrt-24.10
+
     - name: Merge duplicates
       run: |
         cd openwrt
         sudo rm -rf feeds/packages/net/v2ray-geodata
+        sudo rm -rf feeds/packages/net/sing-box
+        sudo rm -rf package/feeds/packages/sing-box
 
    # - name: r8152
     #  id: r8152
@@ -177,6 +191,8 @@ jobs:
        rsync -a feeds/luci/applications/homeproxy/applications/luci-app-homeproxy/* feeds/luci/applications/luci-app-homeproxy
        rm -rf feeds/luci/applications/homeproxy
        ln -sf ../../../feeds/luci/applications/luci-app-homeproxy package/feeds/luci/luci-app-homeproxy
+       mv package/singbox/net/sing-box package
+       rm -rf package/singbox
     #   rsync -a feeds/luci/applications/passwall2/luci-app-passwall2/* feeds/luci/applications/luci-app-passwall2
     #   rm -rf feeds/luci/applications/passwall2
     #   ln -sf ../../../feeds/luci/applications/luci-app-passwall2 package/feeds/luci/luci-app-passwall2
