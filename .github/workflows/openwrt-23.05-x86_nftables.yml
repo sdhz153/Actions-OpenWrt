@@ -149,8 +149,8 @@ jobs:
       run: |
         cd openwrt
         sudo rm -rf feeds/packages/net/v2ray-geodata
-        sudo rm -rf feeds/packages/net/sing-box
-        sudo rm -rf package/feeds/packages/sing-box
+        sudo rm -rf feeds/packages/net/sing-box/*
+      #  sudo rm -rf package/feeds/packages/sing-box
 
     - name: update golang
       run: |
@@ -183,7 +183,7 @@ jobs:
        rm -rf feeds/packages/lang/golang/lang
        rm -rf feeds/packages/lang/golang/.git
        ln -sf ../../../feeds/packages/lang/golang package/feeds/packages/golang
-       mv package/singbox/net/sing-box package
+       rsync -a package/singbox/net/sing-box/* feeds/packages/net/sing-box
        rm -rf package/singbox
 
     - name: Load custom configuration
