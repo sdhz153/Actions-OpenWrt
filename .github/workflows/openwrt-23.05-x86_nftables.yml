@@ -133,17 +133,17 @@ jobs:
        echo "net/sing-box" >> .git/info/sparse-checkout
        git pull --depth 1 origin openwrt-24.10
 
-    - name: Add chinadns-ng
-      id: chinadns-ng
-      run: |
-       cd openwrt
-       mkdir -p package/chinadns/
-       cd package/chinadns/
-       git init
-       git remote add origin https://github.com/fw876/helloworld.git
-       git config core.sparsecheckout true
-       echo "chinadns-ng" >> .git/info/sparse-checkout
-       git pull --depth 1 origin master
+   # - name: Add chinadns-ng
+   #   id: chinadns-ng
+   #   run: |
+   #    cd openwrt
+   #    mkdir -p package/chinadns/
+   #    cd package/chinadns/
+   #    git init
+   #    git remote add origin https://github.com/fw876/helloworld.git
+   #    git config core.sparsecheckout true
+   #    echo "chinadns-ng" >> .git/info/sparse-checkout
+    #   git pull --depth 1 origin master
 
     - name: Merge duplicates
       run: |
