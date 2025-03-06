@@ -152,6 +152,11 @@ jobs:
         $GITHUB_WORKSPACE/$DIY_P2_SH
         $GITHUB_WORKSPACE/passwall.config.sh
 
+    - name: apply patches
+      run: |
+        cd openwrt
+        git apply $GITHUB_WORKSPACE/patches/1.24.0.patch
+
     - name: SSH connection to Actions
       uses: P3TERX/ssh2actions@v1.0.0
       if: (github.event.inputs.ssh == 'true' && github.event.inputs.ssh  != 'false') || contains(github.event.action, 'ssh')
