@@ -12,8 +12,8 @@ name: X86_openwrt-23.05_Iptables
 
 on:
  repository_dispatch:
-# schedule:
-#    - cron: 0 21 * * *
+ schedule:
+    - cron: 0 21 * * *
  workflow_dispatch:
     inputs:
       ssh:
@@ -164,6 +164,11 @@ jobs:
         chmod +x $DIY_P2_SH
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
+
+    - name: apply patches
+      run: |
+        cd openwrt
+        git apply $GITHUB_WORKSPACE/patches/1.24.0.patch
 
     - name: SSH connection to Actions
       uses: P3TERX/ssh2actions@v1.0.0
