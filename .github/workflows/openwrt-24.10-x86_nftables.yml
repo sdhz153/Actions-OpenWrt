@@ -80,6 +80,7 @@ jobs:
         cd openwrt
         git clone https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns
         git clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
+        git clone https://github.com/immortalwrt/homeproxy.git -b master package/homeproxy
         git clone https://github.com/sdhz151/openwrt-tcp-brutal.git package/brutal
 
     - name: Install feeds
@@ -107,18 +108,6 @@ jobs:
        git remote add origin https://github.com/immortalwrt/packages.git
        git config core.sparsecheckout true
        echo "net/vlmcsd" >> .git/info/sparse-checkout
-       git pull --depth 1 origin openwrt-24.10
-
-    - name: Add homeproxy
-      id: homeproxy
-      run: |
-       cd openwrt
-       mkdir -p feeds/luci/applications/homeproxy
-       cd feeds/luci/applications/homeproxy
-       git init
-       git remote add origin https://github.com/immortalwrt/luci.git
-       git config core.sparsecheckout true
-       echo "applications/luci-app-homeproxy" >> .git/info/sparse-checkout
        git pull --depth 1 origin openwrt-24.10
 
     - name: Add sing-box
@@ -151,9 +140,6 @@ jobs:
        mv package/vlmcsd/net/vlmcsd/* package/vlmcsd
        rm -rf package/vlmcsd/net
        rm -rf package/vlmcsd/.git
-       rsync -a feeds/luci/applications/homeproxy/applications/luci-app-homeproxy/* feeds/luci/applications/luci-app-homeproxy
-       rm -rf feeds/luci/applications/homeproxy
-       ln -sf ../../../feeds/luci/applications/luci-app-homeproxy package/feeds/luci/luci-app-homeproxy
        rsync -a package/singbox/net/sing-box/* feeds/packages/net/sing-box
        rm -rf package/singbox
 
