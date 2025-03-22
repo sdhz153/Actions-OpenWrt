@@ -11,6 +11,7 @@ echo 'CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Simple_Obfs=y' >>.config
 echo 'CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_SingBox=y' >>.config
 echo 'CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_V2ray_Plugin=y' >>.config
 echo 'CONFIG_PACKAGE_luci-app-passwall2_Nftables_Transparent_Proxy=y' >>.config
+echo "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Geoview=y" >> .config
 echo 'CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Haproxy=y' >>.config
 echo 'CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Simple_Obfs=y' >>.config
 echo 'CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox=y' >>.config
