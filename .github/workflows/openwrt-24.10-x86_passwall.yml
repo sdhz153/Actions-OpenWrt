@@ -147,10 +147,8 @@ jobs:
            echo "==================="
         fi
         chmod +x $DIY_P2_SH
-   #     chmod +x passwall.config.sh
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
-    #    $GITHUB_WORKSPACE/passwall.config.sh
 
     - name: apply patches
       run: |
