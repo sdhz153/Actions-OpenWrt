@@ -13,7 +13,7 @@ name: openwrt-24.10-x86_immortalwrt
 on:
  repository_dispatch:
  schedule:
-    - cron: 0 21 * * *
+    - cron: 0 23 * * *
  workflow_dispatch:
     inputs:
       ssh:
@@ -89,7 +89,7 @@ jobs:
     - name: Merge duplicates
       run: |
         cd openwrt
-        sudo rm -rf feeds/packages/net/v2ray-geodata
+        rm -rf feeds/packages/net/v2ray-geodata
 
     - name: Load custom configuration
       run: |
@@ -215,7 +215,7 @@ jobs:
       uses: dev-drprasad/delete-older-releases@master
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       with:
-        repo: ${{ github.repository }}  
+        repo: ${{ github.repository }}
         keep_latest: 4
         delete_tags: true
       env:

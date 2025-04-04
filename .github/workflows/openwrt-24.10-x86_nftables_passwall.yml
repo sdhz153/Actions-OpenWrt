@@ -13,7 +13,7 @@ name: openwrt-24.10-x86_nftables_passwall
 on:
  repository_dispatch:
  schedule:
-    - cron: 0 21 * * *
+    - cron: 0 23 * * *
  workflow_dispatch:
     inputs:
       ssh:
@@ -105,18 +105,18 @@ jobs:
     - name: Merge duplicates
       run: |
         cd openwrt
-        sudo rm -rf package/feeds/packages/microsocks
-        sudo rm -rf feeds/packages/net/microsocks
-        sudo rm -rf package/feeds/packages/sing-box
-        sudo rm -rf feeds/packages/net/sing-box
-        sudo rm -rf package/feeds/packages/trojan-go
-        sudo rm -rf feeds/packages/net/trojan-go
-        sudo rm -rf package/feeds/packages/v2ray-core
-        sudo rm -rf feeds/packages/net/v2ray-core
-        sudo rm -rf package/feeds/packages/v2ray-geodata
-        sudo rm -rf feeds/packages/net/v2ray-geodata
-        sudo rm -rf package/feeds/packages/xray-core
-        sudo rm -rf feeds/packages/net/xray-core
+        rm -rf package/feeds/packages/microsocks
+        rm -rf feeds/packages/net/microsocks
+        rm -rf package/feeds/packages/sing-box
+        rm -rf feeds/packages/net/sing-box
+        rm -rf package/feeds/packages/trojan-go
+        rm -rf feeds/packages/net/trojan-go
+        rm -rf package/feeds/packages/v2ray-core
+        rm -rf feeds/packages/net/v2ray-core
+        rm -rf package/feeds/packages/v2ray-geodata
+        rm -rf feeds/packages/net/v2ray-geodata
+        rm -rf package/feeds/packages/xray-core
+        rm -rf feeds/packages/net/xray-core
 
     - name: Soft connection
       id: soft
@@ -130,7 +130,7 @@ jobs:
        mv package/vlmcsd/net/vlmcsd/* package/vlmcsd
        rm -rf package/vlmcsd/net
        rm -rf package/vlmcsd/.git
-  
+
     - name: Load custom configuration
       run: |
         [ -e files ] && mv files openwrt/files
@@ -262,7 +262,7 @@ jobs:
       uses: dev-drprasad/delete-older-releases@master
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       with:
-        repo: ${{ github.repository }}  
+        repo: ${{ github.repository }}
         keep_latest: 4
         delete_tags: true
       env:

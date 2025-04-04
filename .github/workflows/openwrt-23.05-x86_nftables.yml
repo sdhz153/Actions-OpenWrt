@@ -13,7 +13,7 @@ name: X86_openwrt-23.05_nftables
 on:
  repository_dispatch:
 # schedule:
-#    - cron: 0 21 * * *
+#    - cron: 0 23 * * *
  workflow_dispatch:
     inputs:
       ssh:
@@ -138,9 +138,9 @@ jobs:
     - name: Merge duplicates
       run: |
         cd openwrt
-        sudo rm -rf feeds/packages/net/v2ray-geodata
-        sudo rm -rf feeds/packages/net/sing-box/*
-      #  sudo rm -rf package/feeds/packages/sing-box
+        rm -rf feeds/packages/net/v2ray-geodata
+        rm -rf feeds/packages/net/sing-box/*
+      #  rm -rf package/feeds/packages/sing-box
 
     - name: update golang
       run: |
@@ -297,7 +297,7 @@ jobs:
       uses: dev-drprasad/delete-older-releases@master
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       with:
-        repo: ${{ github.repository }}  
+        repo: ${{ github.repository }}
         keep_latest: 4
         delete_tags: true
       env:
