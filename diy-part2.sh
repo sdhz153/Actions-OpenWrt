@@ -14,6 +14,8 @@
 # sed -i 's/KERNEL_PATCHVER:=5.15/KERNEL_PATCHVER:=5.10/g' target/linux/x86/Makefile
 if [[ $REPO_URL = *"immortalwrt"* || $REPO_URL = *"coolsnowwolf"* ]]; then
    sed -i 's/192.168.1.1/192.168.2.1/g' package/base-files/files/bin/config_generate
+   echo 'net.core.default_qdisc=fq' >>package/base-files/files/etc/sysctl.conf
+   echo 'net.ipv4.tcp_congestion_control=bbr' >>package/base-files/files/etc/sysctl.conf
    echo "============================="
    echo "diy-part2扩展自定义第一项设置完成"
    echo "============================="
@@ -26,6 +28,8 @@ else if [[ $REPO_URL = *"x-wrt"* ]]; then
    sed -i "s/add_list system.ntp.server='1.openwrt.pool.ntp.org'/add_list system.ntp.server='time1.cloud.tencent.com'/" package/base-files/files/bin/config_generate
    sed -i "s/add_list system.ntp.server='2.openwrt.pool.ntp.org'/add_list system.ntp.server='time.ustc.edu.cn'/" package/base-files/files/bin/config_generate
    sed -i "s/add_list system.ntp.server='3.openwrt.pool.ntp.org'/add_list system.ntp.server='cn.pool.ntp.org'/" package/base-files/files/bin/config_generate
+   echo 'net.core.default_qdisc=fq' >>package/base-files/files/etc/sysctl.conf
+   echo 'net.ipv4.tcp_congestion_control=bbr' >>package/base-files/files/etc/sysctl.conf
    echo "============================="
    echo "diy-part2扩展自定义第二项设置完成"
    echo "============================="
@@ -38,6 +42,8 @@ else if [[ $CONFIG_FILE = *"Redrice-AC2100"* ]]; then
    sed -i "s/add_list system.ntp.server='1.openwrt.pool.ntp.org'/add_list system.ntp.server='time1.cloud.tencent.com'/" package/base-files/files/bin/config_generate
    sed -i "s/add_list system.ntp.server='2.openwrt.pool.ntp.org'/add_list system.ntp.server='time.ustc.edu.cn'/" package/base-files/files/bin/config_generate
    sed -i "s/add_list system.ntp.server='3.openwrt.pool.ntp.org'/add_list system.ntp.server='cn.pool.ntp.org'/" package/base-files/files/bin/config_generate
+   echo 'net.core.default_qdisc=fq' >>package/base-files/files/etc/sysctl.conf
+   echo 'net.ipv4.tcp_congestion_control=bbr' >>package/base-files/files/etc/sysctl.conf
    echo "============================="
    echo "diy-part2扩展自定义第三项设置完成"
    echo "============================="
@@ -50,6 +56,8 @@ else
    sed -i "s/add_list system.ntp.server='1.openwrt.pool.ntp.org'/add_list system.ntp.server='time1.cloud.tencent.com'/" package/base-files/files/bin/config_generate
    sed -i "s/add_list system.ntp.server='2.openwrt.pool.ntp.org'/add_list system.ntp.server='time.ustc.edu.cn'/" package/base-files/files/bin/config_generate
    sed -i "s/add_list system.ntp.server='3.openwrt.pool.ntp.org'/add_list system.ntp.server='cn.pool.ntp.org'/" package/base-files/files/bin/config_generate
+   echo 'net.core.default_qdisc=fq' >>package/base-files/files/etc/sysctl.conf
+   echo 'net.ipv4.tcp_congestion_control=bbr' >>package/base-files/files/etc/sysctl.conf
    echo "============================="
    echo "diy-part2扩展自定义第四项设置完成"
    echo "============================="
