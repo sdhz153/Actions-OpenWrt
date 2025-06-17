@@ -162,6 +162,7 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
         git apply $GITHUB_WORKSPACE/patches/bbr3.patch
+        git apply $GITHUB_WORKSPACE/patches/BBRv3-diag-information.patch
 
     - name: SSH connection to Actions
       uses: P3TERX/ssh2actions@v1.0.0
