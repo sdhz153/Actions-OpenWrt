@@ -3,6 +3,7 @@
 git clone -b main https://github.com/xiaorouji/openwrt-passwall-packages.git package/passwall
 # git clone -b main https://github.com/xiaorouji/openwrt-passwall2.git package/passwall2
 git clone -b main https://github.com/xiaorouji/openwrt-passwall.git package/passwall1
+git clone https://github.com/sdhz151/openwrt-tcp-brutal.git package/brutal
 #
 echo 'CONFIG_PACKAGE_luci-app-passwall=y' >>.config
 # echo 'CONFIG_PACKAGE_luci-app-passwall2=y' >>.config
@@ -31,6 +32,7 @@ echo 'CONFIG_PACKAGE_v2ray-plugin=y' >>.config
 echo 'CONFIG_PACKAGE_xray-core=y' >>.config
 echo '# CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan_Plus is not set' >>.config
 echo '# CONFIG_PACKAGE_trojan-plus is not set' >>.config
+echo 'CONFIG_PACKAGE_kmod-brutal=y' >>.config
 #passwall1
 sed -i '/CONFIG_PACKAGE_$(PKG_NAME)_Iptables_Transparent_Proxy/d' ./package/passwall1/luci-app-passwall/Makefile
 sed -i '/config PACKAGE_$(PKG_NAME)_Iptables_Transparent_Proxy/,+12d' ./package/passwall1/luci-app-passwall/Makefile
@@ -48,4 +50,4 @@ sed -i '/config PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Client/,+10d' ./p
 # sed -i '/CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Client/d' ./package/passwall2/luci-app-passwall2/Makefile
 # sed -i '/CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Server/d' ./package/passwall2/luci-app-passwall2/Makefile
 # sed -i '/config PACKAGE_$(PKG_NAME)_INCLUDE_Shadowsocks_Libev_Client/,+10d' ./package/passwall2/luci-app-passwall2/Makefile
-# sed -i '/config PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Client/,+10d' ./package/passwall2/luci-app-passwall2/Makefile
+# sed -i '/config PACKAGE_$(PKG_NAME)_INCLUDE_ShadowsocksR_Libev_Client/,+10d' ./package/passwall2/luci-app-passwall2/Makefile 
