@@ -13,7 +13,7 @@ name: X86_openwrt-24.10_nftables
 on:
  repository_dispatch:
  schedule:
-    - cron: 35 24 * * *
+    - cron: 35 0 * * *
  workflow_dispatch:
     inputs:
       ssh:
