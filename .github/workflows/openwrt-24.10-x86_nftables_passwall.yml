@@ -12,8 +12,8 @@ name: openwrt-24.10-x86_nftables_passwall
 
 on:
  repository_dispatch:
- schedule:
-    - cron: 25 0 * * *
+# schedule:
+#    - cron: 25 0 * * *
  workflow_dispatch:
     inputs:
       ssh:
