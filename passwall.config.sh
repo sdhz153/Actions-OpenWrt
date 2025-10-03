@@ -3,7 +3,7 @@
 git clone -b main https://github.com/xiaorouji/openwrt-passwall-packages.git package/passwall
 # git clone -b main https://github.com/xiaorouji/openwrt-passwall2.git package/passwall2
 git clone -b main https://github.com/xiaorouji/openwrt-passwall.git package/passwall1
-git clone https://github.com/sdhz151/openwrt-tcp-brutal.git package/brutal
+git clone https://github.com/haruue-net/openwrt-tcp-brutal.git package/brutal
 git clone https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns
 git clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
 #
