@@ -282,19 +282,6 @@ jobs:
             ${{ runner.os }}-${{ env.REPO_BRANCH }}-ccache-
           max-size: ${{ env.CCACHE_SIZE }}  # 缓存最大大小，与全局配置一致
 
-      # 步骤18：缓存编译目录（build_dir），避免重复编译中间文件
-      - name: 缓存-编译目录（build_dir）
-        uses: actions/cache@v4
-        id: cache-builddir
-        with:
-          path: /workdir/openwrt/build_dir  # 缓存目录：编译中间文件目录
-          # 缓存KEY：系统+分支+Feeds配置+编译配置
-          key: ${{ runner.os }}-${{ env.REPO_BRANCH }}-builddir-${{ hashFiles('openwrt/feeds.conf.default','openwrt/.config') }}
-          # 缓存恢复规则：优先精准匹配，再匹配基础分支
-          restore-keys: |
-            ${{ runner.os }}-${{ env.REPO_BRANCH }}-builddir-
-          enableCrossOsArchive: false  # 关闭跨系统缓存，避免兼容性问题
-
       # 步骤19：缓存编译环境目录（staging_dir），加速后续编译
       - name: 缓存-编译环境目录（staging_dir）
         uses: actions/cache@v4
@@ -314,7 +301,6 @@ jobs:
           echo "==================== 缓存命中状态 ===================="
           echo "📦 下载包缓存: ${{ steps.cache-dl.outputs.cache-hit }}"
           echo "📦 编译缓存ccache: ${{ steps.cache-ccache.outputs.cache-hit }}"
-          echo "📦 编译目录缓存builddir: ${{ steps.cache-builddir.outputs.cache-hit }}"
           echo "📦 staging_dir 缓存: ${{ steps.cache-staging.outputs.cache-hit }}"
           echo "======================================================"
           # 若ccache已安装，打印初始统计信息（缓存大小/命中率等）
@@ -355,7 +341,6 @@ jobs:
             echo "📦 缓存实际大小: $(du -sh $CCACHE_DIR 2>/dev/null | cut -f1 || echo 'N/A')"
           fi
           # 打印编译目录大小/剩余磁盘空间/编译状态，便于调试
-          echo "📦 编译目录大小: $(du -sh /workdir/openwrt/build_dir 2>/dev/null | cut -f1 || echo 'N/A')"
           echo "📦 剩余磁盘空间: $(df -h /workdir | awk 'NR==2{print $4}')"
           echo "📦 固件编译状态: ${{ job.status }}"
           echo "======================================================"
