@@ -117,7 +117,7 @@ jobs:
           echo "🔧 Feeds源更新已完成"
           echo "STEP: Update all OpenWrt feeds completed — $(date +%Y-%m-%d\ %H:%M:%S)"
       # 步骤8：克隆第三方插件源码，集成homeproxy/mosdns等核心功能
-      - name: 克隆第三方插件（homeproxy/mosdns等）
+      - name: 克隆第三方插件（passwall/mosdns等）
         run: |
           cd openwrt
           git clone --depth=1 https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns || true
@@ -377,13 +377,13 @@ jobs:
           name: ${{ env.REPO_BRANCH }}-${{ env.DEVICE_NAME }}-${{ env.CACHE_TRADEMARK }}-${{ env.BUILD_DATE }}  # Release名称，含插件标识便于区分
           # Release描述信息，自动生成，包含固件核心信息，便于用户了解固件特性
           body: |
-            ## 📦 OpenWrt 25.12 homeproxy 固件编译结果
+            ## 📦 OpenWrt 25.12 passwall 固件编译结果
             - 固件架构: ${{ env.DEVICE_NAME }} (x86_64)
             - 内核规则: nftables（新一代内核防火墙规则）
-            - 核心插件: homeproxy/mosdns/vlmcsd/brutal/
+            - 核心插件: passwall/mosdns/
             - 编译线程: $(nproc)
             - 编译时间: ${{ env.BUILD_DATE }}
-            - 缓存策略: 纯工具链缓存（ccache 10G + staging_dir），移除dl缓存（上游每日更新）+ 自动清理旧缓存
+            - 缓存策略: 纯工具链缓存（ccache 10G + staging_dir）
             - 内核优化: BBR3 拥塞控制算法（提升网络传输速度）
             - 补丁支持: BBR3网络优化/LLVM下载优化（解决编译依赖问题）
           draft: false  # 不创建草稿，直接正式发布
