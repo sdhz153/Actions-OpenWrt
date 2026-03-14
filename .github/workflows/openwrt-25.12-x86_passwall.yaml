@@ -1,0 +1,409 @@
+# Copyright (c) 2019-2020 P3TERX <https://p3terx.com>
+# 协议声明：MIT开源协议，自由使用/修改，需保留原版权声明
+# 脚本优化：移除dl依赖包缓存+仅保留ccache/staging_dir纯工具链缓存+修复远程.config下载+全步骤中文注释+插件冲突处理
+# 核心策略：上游源码每日更新，放弃dl缓存；仅缓存C/C++编译器/工具链，兼顾速度与编译稳定性
+name: openwrt-25.12-passwall
+# 工作流触发方式：支持3种触发方式，按需启用
+on:
+  repository_dispatch:          # 仓库API/外部脚本事件触发，适用于自动化调用
+  schedule:                     # 定时自动触发，编译最新固件
+    - cron: 0 21 * * *          # 定时规则：每天UTC时间21点（北京时间次日5点）执行
+  workflow_dispatch:            # 手动触发（核心），GitHub页面点击Run workflow即可编译
+    inputs:
+      ssh:                      # 手动触发可选参数：是否开启SSH远程调试编译环境
+        description: 'SSH connection to Actions'
+        required: false
+        default: 'false'        # 默认关闭SSH调试，避免环境暴露
+# 全局环境变量配置：整份脚本通用，统一管理便于修改，无需深入脚本内部调整
+env:
+  REPO_URL: https://github.com/openwrt/openwrt.git          # OpenWrt官方源码仓库地址，固定不变
+  REPO_BRANCH: openwrt-25.12                                 # 编译分支：openwrt 25.12稳定版
+  FEEDS_CONF: feeds.conf.default                             # OpenWrt Feeds源配置文件名，固定不变
+  CONFIG_FILE: config/x86/config.buildinfo             # 本地编译配置文件路径，插件专属
+  CONFIG_URL: https://raw.githubusercontent.com/sdhz153/Actions-OpenWrt/refs/heads/main/config/x86/config.buildinfo  # 远程配置文件URL，本地无配置时自动下载
+  DIY_P1_SH: diy-part1.sh                                    # 前置自定义脚本：编译前执行（如修改源、添加插件）
+  DIY_P2_SH: diy-part2.sh                                    # 后置自定义脚本：加载配置后执行（如修改编译参数、开启优化）
+  UPLOAD_BIN_DIR: false                                      # 是否上传编译原始二进制文件：关闭（占用空间大，无实用价值）
+  UPLOAD_FIRMWARE: true                                      # 是否上传最终固件文件：开启（核心输出，便于下载）
+  UPLOAD_COWTRANSFER: false                                  # 是否上传到奶牛快传：关闭（非必要第三方存储）
+  UPLOAD_WETRANSFER: false                                   # 是否上传到WeTransfer：关闭（非必要第三方存储）
+  UPLOAD_RELEASE: true                                       # 是否发布到GitHub Release：开启（长期存储，便于分享）
+  TZ: Asia/Shanghai                                          # 服务器时区：上海，解决编译日志时间显示错乱问题
+  CCACHE_SIZE: 10G                                           # ccache工具链缓存大小：10G，足够存放编译产物
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true                   # 强制Actions使用Node24，解决Node20废弃警告，适配GitHub最新环境
+  NODE_NO_WARNINGS: 1                                        # 关闭所有Node.js废弃警告（如punycode/url.parse）
+  CACHE_TRADEMARK: passwall
+# 编译核心任务：单任务串行执行，避免多任务同时运行导致的服务器资源冲突
+
+# 新增：全局权限配置，授予删除缓存所需权限
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04      # 编译服务器系统：Ubuntu最新版，OpenWrt官方推荐编译环境
+    # 并发控制：同一分支仅允许一个编译任务运行，重复触发则自动取消前一个，避免资源浪费
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      # 步骤1：检出仓库本地配置文件（脚本/补丁/配置等）
+      - name: 检出仓库本地配置
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1        # 仅拉取仓库最新版本，不拉取历史提交，节省下载时间和磁盘空间
+      # 步骤2：打印步骤完成通知，便于日志排查执行进度
+      - name: 通知-代码检出完成
+        run: |
+          echo "STEP: Checkout code completed — $(date +%Y-%m-%d\ %H:%M:%S)"
+      # 步骤3：初始化编译环境，安装所有核心依赖工具+清理系统冗余文件
+      - name: 初始化编译环境（安装依赖+清理系统）
+        env:
+          DEBIAN_FRONTEND: noninteractive  # 关闭Debian系统交互提示，自动确认安装，无需手动干预
+        run: |
+          # 删除系统无用大文件，释放磁盘空间（GitHub Actions默认磁盘空间有限，避免后续编译磁盘不足）
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL	
+          # 更新Ubuntu软件源，静默执行（-qq：无多余输出，加快执行速度）
+          sudo -E apt-get -qq update
+          # 安装OpenWrt编译所需所有核心依赖：编译工具/语言环境/缓存工具/系统库等，缺一不可
+          sudo -E apt-get -qq install build-essential clang flex bison g++ gawk \
+            gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
+            python3-setuptools rsync swig unzip zlib1g-dev file wget \
+            llvm python3-pyelftools libpython3-dev aria2 jq qemu-utils ccache rename \
+            libelf-dev device-tree-compiler libgmp3-dev libmpc-dev libfuse-dev
+          # 卸载系统无用包+清理apt缓存，进一步释放磁盘空间
+          sudo -E apt-get -qq autoremove --purge || true
+          sudo -E apt-get -qq clean || true
+          sudo rm -rf /var/lib/apt/lists/* || true
+          # 配置服务器时区为上海，与本地时间一致
+          sudo timedatectl set-timezone "${{ env.TZ }}" || true
+          # 创建编译工作根目录，赋予当前用户读写权限，避免后续编译权限报错
+          sudo mkdir -p /workdir
+          sudo chown $USER:$GROUPS /workdir || true
+          # 打印系统核心信息，便于调试：CPU核心数（决定编译线程）、剩余磁盘空间
+          echo "🔧 系统核心数: $(nproc)"
+          echo "🔧 剩余磁盘空间: $(df -h /workdir | awk 'NR==2{print $4}')"
+          echo "STEP: Initialize build environment completed — $(date +%Y-%m-%d\ %H:%M:%S)"
+      # 步骤4：克隆OpenWrt官方源码到编译工作目录
+      - name: 克隆OpenWrt官方源码
+        working-directory: /workdir  # 执行目录：指定为编译工作根目录，避免文件混乱
+        run: |
+          # 克隆源码，--depth=1：仅拉取最新版本，大幅加速克隆速度（无需历史提交）
+          git clone --depth=1 $REPO_URL -b $REPO_BRANCH openwrt
+          # 创建软链接，让后续脚本可在GitHub默认目录找到源码，兼容脚本路径逻辑
+          ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
+          cd openwrt
+          # 打印OpenWrt源码最新版本信息，便于确认源码是否为最新
+          echo "🔧 OpenWrt 版本: $(git log --oneline -1 | head -n1)"
+          echo "STEP: Clone OpenWrt source code completed — $(date +%Y-%m-%d\ %H:%M:%S)"
+      # 步骤5：加载自定义Feeds配置+执行前置DIY脚本（diy-part1.sh）
+      - name: 加载自定义Feeds配置+执行前置DIY脚本
+        run: |
+          # 若本地有自定义Feeds配置文件，替换官方默认配置，实现源的自定义
+          [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default || true
+          # 给前置DIY脚本赋予执行权限，否则无法运行
+          chmod +x $DIY_P1_SH || true
+          cd openwrt
+          # 执行前置DIY脚本，执行失败不终止编译（|| true），避免脚本小问题导致整体编译中断
+          $GITHUB_WORKSPACE/$DIY_P1_SH || true
+          echo "STEP: Load custom feeds configuration completed — $(date +%Y-%m-%d\ %H:%M:%S)"
+      # 步骤7：更新所有OpenWrt Feeds源（官方），拉取最新包列表
+      - name: 更新所有OpenWrt Feeds（官方）
+        run: |
+          cd openwrt
+          # 更新所有Feeds源的软件包列表，-a：更新全部，确保包列表为最新
+          ./scripts/feeds update -a || true
+          echo "🔧 Feeds源更新已完成"
+          echo "STEP: Update all OpenWrt feeds completed — $(date +%Y-%m-%d\ %H:%M:%S)"
+      # 步骤8：克隆第三方插件源码，集成homeproxy/mosdns等核心功能
+      - name: 克隆第三方插件（homeproxy/mosdns等）
+        run: |
+          cd openwrt
+          git clone --depth=1 https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns || true
+          git clone --depth=1 https://github.com/sbwml/v2ray-geodata package/v2ray-geodata || true
+          git clone -b main https://github.com/Openwrt-Passwall/openwrt-passwall-packages package/passwallapp
+          git clone -b main https://github.com/Openwrt-Passwall/openwrt-passwall2.git package/passwall2
+          git clone -b main https://github.com/Openwrt-Passwall/openwrt-passwall package/passwall
+
+          echo "🔧 第三方包克隆完成"
+          echo "STEP: Clone third-party packages completed — $(date +%Y-%m-%d\ %H:%M:%S)"
+      # 步骤9：处理插件软链接/目录结构+清理冗余目录，适配OpenWrt编译规则
+      - name: 处理插件软链接/目录结构（适配编译规则）
+        id: process-softlink       # 步骤ID，后续可通过此ID调用步骤结果（非必需，便于调试）
+        run: |
+          cd openwrt
+          sed -i 's/146fa4511a52da2aaa1e11ea0294cfb450e62643156c5da3b10e037ef43961f6/skip/g' package/passwallapp/shadowsocksr-libev/Makefile
+          # 移动brutal插件到根目录，让OpenWrt编译系统能识别并编译
+          mv package/app/brutal package/ || true
+          # 移动vlmcsd插件到根目录，适配编译系统路径识别规则
+          mv package/app/vlmcsd package/ || true
+          # 移动luci-app-vlmcsd到LuCI应用专属目录，适配LuCI插件编译规则
+          mv package/app/luci-app-vlmcsd feeds/luci/applications/ || true
+          # 创建LuCI Feeds目录，避免目录不存在导致的软链接创建失败
+          mkdir -p package/feeds/luci || true
+          # 创建软链接，让编译系统能快速找到luci-app-vlmcsd插件
+          ln -sf ../../../feeds/luci/applications/luci-app-vlmcsd package/feeds/luci/luci-app-vlmcsd || true
+          # 创建软链接，让编译系统能找到
+          echo "🔧 插件软链接处理完成"
+          # 删除无用的app目录，清理编译环境，避免文件冗余
+          rm -rf feeds/packages/net/microsocks
+          rm -rf feeds/packages/net/sing-box
+          rm -rf feeds/packages/net/trojan-go
+          rm -rf feeds/packages/net/v2ray-core
+          rm -rf feeds/packages/net/v2ray-geodata
+          rm -rf feeds/packages/net/xray-core
+          echo "🔧 冗余目录清理完成"
+          echo "STEP: Process package soft links completed — $(date +%Y-%m-%d\ %H:%M:%S)"
+      # 步骤10：安装所有OpenWrt Feeds软件包（官方+第三方）
+      - name: 安装所有OpenWrt Feeds软件包
+        run: |
+          cd openwrt
+          # 安装所有Feeds包，-a：全部安装，-f：!强制覆盖，解决依赖冲突
+          ./scripts/feeds install -a || true
+          # 打印安装的包数，便于确认安装结果
+          echo "🔧 Feeds 安装完成，总包数: $(ls package/feeds/ | wc -l)"
+          echo "STEP: Install all OpenWrt feeds completed — $(date +%Y-%m-%d\ %H:%M:%S)"
+      # 步骤11：加载编译配置（核心修复：本地无.config时自动下载远程配置，解决原逻辑错误）
+      - name: 加载编译配置（修复路径问题 + 优先本地 + 格式规范）
+        run: |
+          # 若本地有自定义files目录（固件默认配置/文件），复制到源码目录
+          [ -e files ] && mv files openwrt/files/ || true
+          # 核心逻辑：优先本地配置，不存在时再自动下载远程CONFIG_URL
+          if [ ! -f "${{ env.CONFIG_FILE }}" ]; then
+              echo "ℹ️  未找到本地配置文件: ${{ env.CONFIG_FILE }}"
+        
+              if [ -n "${{ env.CONFIG_URL }}" ]; then
+                  echo "🔄 尝试加载远程.config文件: ${{ env.CONFIG_URL }}"
+            
+                  # 下载远程配置文件到 OpenWrt 源码根目录
+                  wget -q -O openwrt/.config "${{ env.CONFIG_URL }}"
+            
+                  if [ -s openwrt/.config ]; then
+                      echo "✅ 远程.config文件下载并加载成功（远程兜底）"
+                  else
+                      echo "❌ 远程.config文件下载失败/文件为空，将使用默认配置"
+                      rm -f openwrt/.config  # 删除空文件，避免编译报错
+                  fi
+              fi
+          else
+              echo "✅ 加载本地.config文件: ${{ env.CONFIG_FILE }}"
+              cp ${{ env.CONFIG_FILE }} openwrt/.config
+          fi
+          # 进入 OpenWrt 源码目录，补全配置参数
+          cd openwrt
+          echo "🔧 执行 make defconfig 补全缺失配置项..."
+          # 补全.config.in，避免因配置不完整导致编译报错
+          make defconfig >/dev/null 2>&1 || true
+      # 步骤12：执行后置DIY脚本+应用优化补丁+开启ccache缓存，编译前最终配置
+      - name: 执行后置DIY脚本+应用优化补丁+开启ccache
+        run: |
+          # 给后置DIY脚本赋予执行权限
+          chmod +x $DIY_P2_SH || true
+          cd openwrt
+          # 执行后置DIY脚本，执行失败不终止编译，适配自定义参数修改
+          $GITHUB_WORKSPACE/$DIY_P2_SH || true
+          # 应用BBR3拥塞控制补丁：提升网络传输速度，优化固件网络性能
+          git apply --quiet $GITHUB_WORKSPACE/patches/bbr3.patch || true
+          git apply --quiet $GITHUB_WORKSPACE/patches/BBRv3-diag-information.patch || true
+          # 应用LLVM下载优化补丁：解决Rust/LLVM语言插件编译依赖问题，避免编译报错
+          git apply --quiet $GITHUB_WORKSPACE/patches/llvm-download-ci-llvm-set-to-false.patch || true
+          # 强制开启ccache编译缓存，写入.config配置文件，编译系统自动识别
+          echo "CONFIG_CCACHE=y" >> .config || true
+          echo "CONFIG_CCACHE_SIZE=${{ env.CCACHE_SIZE }}" >> .config || true
+          echo "CONFIG_CCACHE_DIR=/workdir/.ccache" >> .config || true
+          # 开启passwall插件，写入.config配置文件，编译系统自动识别
+          echo 'CONFIG_PACKAGE_luci-app-passwall=y' >>.config
+          echo 'CONFIG_PACKAGE_luci-app-passwall_INCLUDE_V2ray_Geodata=y' >>.config
+          echo '# CONFIG_PACKAGE_trojan-plus is not set' >>.config
+          echo 'CONFIG_PACKAGE_luci-app-passwall2=y' >>.config
+          echo 'CONFIG_PACKAGE_luci-i18n-passwall-zh-cn=y' >>.config
+          echo 'CONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y' >>.config
+          echo '# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client is not set' >>.config
+          echo '# CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks_Rust_Client is not set' >>.config
+          echo 'CONFIG_PACKAGE_iptables-nft=y' >>.config
+          echo 'CONFIG_PACKAGE_arptables-nft=y' >>.config
+          echo 'CONFIG_PACKAGE_ebtables-nft=y' >>.config
+          echo 'CONFIG_PACKAGE_xtables-nft=y' >>.config
+          # 生成默认配置，补全.config中缺失的参数，避免因配置不全导致的编译报错
+          make defconfig >/dev/null 2>&1 || true
+          echo "🔧 固件配置加载&优化补丁应用完成"
+          echo "STEP: Load custom firmware configuration completed — $(date +%Y-%m-%d\ %H:%M:%S)"
+      # 步骤13：预下载所有编译依赖包，边编译边下载会大幅减慢速度，预下载提升效率
+      - name: 预下载所有编译依赖包
+        run: |
+          cd openwrt
+          # 多线程预下载依赖包，-j$(nproc)：使用服务器所有CPU核心，最大化下载速度
+          make download -j$(nproc) >/dev/null 2>&1 || true
+          # 删除空文件/损坏的下载文件，避免编译时因文件损坏导致的中断
+          find dl -size -1k -exec rm -f {} \; || true
+          # 打印下载的依赖包数量，便于确认下载是否完成
+          echo "🔧 依赖包下载完成，共下载: $(ls dl/ | wc -l) 个文件"
+          echo "STEP: Download dependent packages completed — $(date +%Y-%m-%d\ %H:%M:%S)"
+      # 步骤14：配置ccache编译缓存环境，设置环境变量+创建缓存目录
+      - name: 配置ccache编译缓存环境（设置环境变量）
+        run: |
+          # 配置ccache核心环境变量，定义缓存目录/大小/压缩策略
+          echo "CCACHE_DIR=/workdir/.ccache" >> $GITHUB_ENV          # ccache缓存目录，与.config中配置一致
+          echo "CCACHE_MAXSIZE=${{ env.CCACHE_SIZE }}" >> $GITHUB_ENV  # 缓存最大大小，与全局环境变量一致
+          echo "CCACHE_COMPRESS=1" >> $GITHUB_ENV                  # 开启缓存压缩，节省磁盘空间
+          echo "CCACHE_COMPRESSLEVEL=6" >> $GITHUB_ENV            # 压缩级别：6（平衡压缩比和压缩/解压速度）
+          # 将ccache加入系统PATH，让编译系统优先使用ccache包装的编译器，实现缓存自动生效
+          echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
+          # 创建ccache缓存目录，赋予755权限，确保编译系统可读写
+          mkdir -p /workdir/.ccache
+          chmod 755 /workdir/.ccache
+          # 打印Feeds配置文件哈希值，便于确认配置是否变更（配置变更则缓存失效）
+          echo "📄 feeds.conf.default 哈希: $(sha256sum openwrt/feeds.conf.default 2>/dev/null | cut -d' ' -f1 || echo 'N/A')"
+          echo "STEP: Setup ccache compile environment completed — $(date +%Y-%m-%d\ %H:%M:%S)"
+      # 步骤14.5：自动清理-旧ccache/staging_dir缓存（仅保留最新12个，避免缓存堆积占满容量）
+      - name: 自动清理-旧ccache/staging_dir缓存
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // 列出仓库所有Action缓存（使用新API路径）
+            const cacheList = await github.rest.actions.getActionsCacheList({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            // 筛选出OpenWrt编译相关缓存（仅匹配ccache/staging关键词，不清理其他无关缓存）
+            const openwrtCaches = cacheList.data.actions_caches.filter(cache => 
+              cache.key.includes('ccache') || cache.key.includes('staging')
+            );
+            // 按创建时间倒序排序，保留最新12个，其余标记为待删除
+            const cachesToDelete = openwrtCaches.sort((a, b) => 
+              new Date(b.created_at) - new Date(a.created_at)
+            ).slice(12);
+            // 循环删除旧缓存
+            for (const cache of cachesToDelete) {
+              await github.rest.actions.deleteActionsCacheById({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                cache_id: cache.id
+              });
+              console.log(`✅ 已删除旧缓存：${cache.key}（创建时间：${cache.created_at}）`);
+            }
+            console.log(`📊 缓存清理完成：共清理${cachesToDelete.length}个旧缓存，剩余${openwrtCaches.length - cachesToDelete.length}个最新缓存`);
+      # 步骤15：缓存ccache编译产物（纯工具链缓存），替换为官方Action消除Node警告，与Feeds配置绑定
+      - name: 缓存-ccache编译产物（纯C/C++工具链缓存）
+        uses: actions/cache@v4  # 替换第三方ccache-action，使用官方v4版，消除punycode/url.parse废弃警告，兼容Node24
+        id: cache-ccache
+        with:
+          path: /workdir/.ccache  # 指向ccache实际缓存目录，与步骤14/12配置一致
+          # 缓存KEY：系统+分支+插件标识+Feeds配置哈希，仅Feeds配置变更时缓存失效，与.config解耦
+          key: ${{ runner.os }}-${{ env.REPO_BRANCH }}-ccache-${{ env.CACHE_TRADEMARK }}-${{ hashFiles('openwrt/feeds.conf.default') }}
+          # 缓存恢复规则：优先匹配完整KEY，匹配不到则匹配前缀，确保缓存最大程度复用
+          restore-keys: |
+            ${{ runner.os }}-${{ env.REPO_BRANCH }}-ccache-${{ env.CACHE_TRADEMARK }}-
+          enableCrossOsArchive: false  # 关闭跨系统缓存，避免不同系统编译产物不兼容
+      # 步骤16：缓存staging_dir编译环境（纯工具链缓存），包含GCC/交叉编译工具，跳过最耗时的工具链编译
+      - name: 缓存-staging_dir编译环境（纯工具链/交叉编译工具缓存）
+        uses: actions/cache@v4
+        id: cache-staging
+        with:
+          path: /workdir/openwrt/staging_dir  # 缓存目录：OpenWrt编译工具链/系统库核心目录
+          # 缓存KEY：与ccache保持一致，仅Feeds配置变更时失效，确保工具链缓存与编译环境匹配
+          key: ${{ runner.os }}-${{ env.REPO_BRANCH }}-staging-${{ env.CACHE_TRADEMARK }}-${{ hashFiles('openwrt/feeds.conf.default') }}
+          # 缓存恢复规则：优先匹配完整KEY，匹配不到则匹配前缀
+          restore-keys: |
+            ${{ runner.os }}-${{ env.REPO_BRANCH }}-staging-${{ env.CACHE_TRADEMARK }}-
+          enableCrossOsArchive: false  # 关闭跨系统缓存，避免不同系统编译产物不兼容
+      # 步骤17：检查所有工具链缓存命中状态，打印日志便于调试缓存是否生效
+      - name: 检查-工具链缓存命中状态
+        run: |
+          echo "==================== 工具链缓存命中状态 ===================="
+          echo "📦 C/C++编译缓存(ccache): ${{ steps.cache-ccache.outputs.cache-hit }}"  # true=命中，false=未命中
+          echo "📦 编译工具链缓存(staging_dir): ${{ steps.cache-staging.outputs.cache-hit }}"  # true=命中，false=未命中
+          echo "============================================================="
+          # 若ccache已安装，打印初始统计信息（缓存大小/命中率/文件数），便于调试
+          if [ -x "$(which ccache)" ]; then
+            echo "📊 ccache 初始统计信息:"
+            ccache -s
+          fi
+          echo "STEP: Check cache hit status completed — $(date +%Y-%m-%d\ %H:%M:%S)"
+      # 步骤18：编译OpenWrt固件（核心步骤），多线程编译+失败自动单线程查错
+      - name: 编译OpenWrt固件（多线程编译，失败自动单线程查错）
+        run: |
+          cd openwrt
+          # 设置编译核心参数：多线程+开启ccache缓存，无详细日志（加快编译）
+          export MAKEFLAGS="-j$(nproc) CCACHE=1"
+          # 打印编译开始信息，便于日志排查编译时间和线程数
+          echo "🚀 开始编译，使用 $(nproc) 线程"
+          echo "🚀 编译开始时间: $(date +%Y-%m-%d\ %H:%M:%S)"
+          # 编译容错逻辑：多线程编译失败 → 单线程编译 → 单线程详细日志编译，确保能定位报错原因
+          make || make -j1 || make -j1 V=s
+          # 从.config中提取固件设备名称，用于后续固件命名（适配x86_64架构）
+          DEVICE_NAME=$(grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' || echo "x86_64")
+          # 将设备名称/编译日期写入环境变量，后续上传/发布步骤复用
+          echo "DEVICE_NAME=${DEVICE_NAME}" >> $GITHUB_ENV
+          echo "BUILD_DATE=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
+          echo "✅ 固件编译完成"
+          echo "STEP: Compile OpenWrt firmware completed — $(date +%Y-%m-%d\ %H:%M:%S)"
+      # 步骤19：打印ccache最终统计信息，无论编译成功/失败都执行，便于分析缓存命中率
+      - name: 打印-ccache最终统计信息（编译后）
+        if: always()  # 始终执行，即使前面步骤编译失败，便于调试缓存效果
+        run: |
+          echo "==================== ccache最终缓存统计 ===================="
+          # 打印ccache详细统计信息：命中率/缓存大小/已用空间/文件数等
+          if [ -x "$(which ccache)" ]; then
+            ccache -s
+            echo "📦 ccache缓存目录: $CCACHE_DIR"
+            echo "📦 ccache缓存实际大小: $(du -sh $CCACHE_DIR 2>/dev/null | cut -f1 || echo 'N/A')"
+          fi
+          # 打印服务器剩余磁盘空间+固件编译状态，便于调试整体环境
+          echo "📦 服务器剩余磁盘空间: $(df -h /workdir | awk 'NR==2{print $4}')"
+          echo "📦 固件编译最终状态: ${{ job.status }}"
+          echo "============================================================"
+          echo "STEP: Print final ccache statistics completed — $(date +%Y-%m-%d\ %H:%M:%S)"
+      # 步骤20：上传固件到GitHub Artifact，临时存储（默认7天），便于快速下载测试
+      - name: 上传固件-GitHub Artifact（临时存储）
+        uses: actions/upload-artifact@v4
+        if: job.status == 'success'  # 仅编译成功时执行，避免上传空文件
+        with:
+          # 固件包名称：架构_编译日期，便于区分不同版本固件
+          name: OpenWrt_${{ env.DEVICE_NAME }}_nftables_${{ env.BUILD_DATE }}
+          path: /workdir/openwrt/bin/targets/  # 固件输出目录，OpenWrt编译后默认生成到该目录
+          retention-days: 2  # 固件保留天数：2天，自动清理，节省仓库存储空间
+          if-no-files-found: error  # 无固件文件则直接报错，终止步骤，避免无效上传
+      # 步骤21：发布固件到GitHub Release，长期存储，便于分享和正式使用
+      - name: 发布固件-GitHub Release（长期存储）
+        uses: softprops/action-gh-release@v2
+        if: env.UPLOAD_RELEASE == 'true' && job.status == 'success'  # 开启发布+编译成功时执行
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}  # GitHub自动生成的仓库令牌，用于授权发布Release
+        with:
+          files: /workdir/openwrt/bin/targets/**/*  # 发布该目录下所有固件文件（含镜像/压缩包等）
+          tag_name: ${{ env.REPO_BRANCH }}-${{ env.DEVICE_NAME }}-${{ env.BUILD_DATE }}  # Release标签，唯一标识固件版本
+          name: ${{ env.REPO_BRANCH }}-${{ env.DEVICE_NAME }}-${{ env.CACHE_TRADEMARK }}-${{ env.BUILD_DATE }}  # Release名称，含插件标识便于区分
+          # Release描述信息，自动生成，包含固件核心信息，便于用户了解固件特性
+          body: |
+            ## 📦 OpenWrt 25.12 homeproxy 固件编译结果
+            - 固件架构: ${{ env.DEVICE_NAME }} (x86_64)
+            - 内核规则: nftables（新一代内核防火墙规则）
+            - 核心插件: homeproxy/mosdns/vlmcsd/brutal/
+            - 编译线程: $(nproc)
+            - 编译时间: ${{ env.BUILD_DATE }}
+            - 缓存策略: 纯工具链缓存（ccache 10G + staging_dir），移除dl缓存（上游每日更新）+ 自动清理旧缓存
+            - 内核优化: BBR3 拥塞控制算法（提升网络传输速度）
+            - 补丁支持: BBR3网络优化/LLVM下载优化（解决编译依赖问题）
+          draft: false  # 不创建草稿，直接正式发布
+          prerelease: false  # 不标记为预发布版本，为正式可用版本
+          fail_on_unmatched_files: false  # 无匹配文件不报错，避免因文件路径小问题导致发布失败
+      # 步骤22：删除旧的工作流运行
+      - name: 删除旧的工作流运行
+        uses: Mattraks/delete-workflow-runs@main
+        with:
+          token: ${{ secrets.REPO_TOKEN }}
+          repository: ${{ github.repository }}
+          retain_days: 0
+          keep_minimum_runs: 1
+      # 步骤23：移除旧版本
+      - name: 移除旧版本
+        uses: dev-drprasad/delete-older-releases@master
+        if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+        with:
+          repo: ${{ github.repository }}
+          keep_latest: 4
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
