@@ -437,7 +437,7 @@ jobs:
           # 【核心修改】上传targets下所有文件，排除*.apk包，简洁高效
           files: |
             /workdir/openwrt/bin/targets/**/*
-	    !/workdir/openwrt/bin/targets/**/*-openwrt-x86-64-generic-squashfs-rootfs.img.gz
+            !/workdir/openwrt/bin/targets/**/*-openwrt-x86-64-generic-squashfs-rootfs.img.gz
             !/workdir/openwrt/bin/targets/**/*.apk
           tag_name: ${{ env.REPO_BRANCH }}-${{ env.DEVICE_NAME }}-${{ env.BUILD_DATE }}
           name: ${{ env.REPO_BRANCH }}-${{ env.DEVICE_NAME }}-${{ env.CACHE_TRADEMARK }}-${{ env.BUILD_DATE }}
